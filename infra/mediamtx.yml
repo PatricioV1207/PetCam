@@ -23,6 +23,6 @@ pathDefaults:
   #   recordDeleteAfter: 12h
   record: false
   recordFormat: fmp4
-  recordPath: /opt/petcam/data/recordings/cam/%Y-%m-%d_%H-%M-%S-%f
+  recordPath: /opt/petcam/data/recordings/%path/%Y-%m-%d_%H-%M-%S-%f
   recordSegmentDuration: 1h
   recordDeleteAfter: 12h
