@@ -17,12 +17,8 @@ paths:
     source: publisher
 
 pathDefaults:
-  # Recording is disabled in Phase 1.
-  # Phase 2 will enable:
-  #   record: true
-  #   recordDeleteAfter: 12h
-  record: false
+  record: true
   recordFormat: fmp4
   recordPath: /opt/petcam/data/recordings/%path/%Y-%m-%d_%H-%M-%S-%f
-  recordSegmentDuration: 1h
+  recordSegmentDuration: 10m
   recordDeleteAfter: 12h

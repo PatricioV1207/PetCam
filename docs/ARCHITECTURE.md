@@ -82,8 +82,10 @@ All services run as the `petcam` user.
 
 ## Recording Architecture (Phase 2)
 
-- MediaMTX segments: 1-hour `.mp4` files
-- Retention: `recordDeleteAfter: 12h` in MediaMTX
+- MediaMTX segments: 10-minute `.mp4` files (`recordSegmentDuration: 10m`)
+- Retention: `recordDeleteAfter: 12h` in MediaMTX (primary enforcement)
 - Safety net: `cleanup_recordings.sh` via systemd timer (every 10 min)
-- Files older than 12 hours are deleted
-- Empty directories are cleaned up
+  - Deletes files older than 720 minutes (12 hours)
+  - Removes empty directories
+  - Guards against empty or invalid paths
+- Two independent mechanisms ensure retention is reliable

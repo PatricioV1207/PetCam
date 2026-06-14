@@ -69,3 +69,4 @@ sudo apt update && sudo apt upgrade -y    # system + ffmpeg
 - Tailscale ACLs to restrict which devices can reach the Pi
 - Read-only API for external clients
 - Disk-full detection to prevent failures
+- Recording retention is enforced by both MediaMTX (`recordDeleteAfter: 12h`) and an independent systemd cleanup timer — recordings older than 12 hours are deleted on schedule

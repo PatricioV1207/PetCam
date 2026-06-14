@@ -1,0 +1,15 @@
+[Unit]
+Description=PetCam recording cleanup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=petcam
+Group=petcam
+WorkingDirectory=/opt/petcam
+ExecStart=/opt/petcam/scripts/cleanup_recordings.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

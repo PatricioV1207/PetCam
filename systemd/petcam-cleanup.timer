@@ -1,0 +1,10 @@
+[Unit]
+Description=PetCam recording cleanup (every 10 minutes)
+After=multi-user.target
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+
+[Install]
+WantedBy=timers.target

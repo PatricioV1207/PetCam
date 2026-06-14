@@ -195,7 +195,70 @@ sudo systemctl status petcam-stream
 
 ---
 
-## 10. Tailscale (Future — Phase 5)
+## 10. Enable Recording (Phase 2)
+
+Recording is now active. MediaMTX will write 10-minute fMP4 segments to `/opt/petcam/data/recordings/cam/` and automatically delete segments older than 12 hours.
+
+```bash
+# Update MediaMTX config (record: true, segment: 10m, retention: 12h)
+# The config file /opt/petcam/infra/mediamtx.yml was already deployed.
+
+# Restart MediaMTX to pick up the new config
+sudo systemctl restart petcam-mediamtx
+
+# Verify recordings are being created
+watch -n 5 'ls -lh /opt/petcam/data/recordings/cam/'
+
+# After a few minutes, you should see .mp4 files appearing
+```
+
+### Safety Cleanup Service
+
+A secondary cleanup script runs every 10 minutes via systemd timer:
+
+```bash
+# Copy the cleanup service and timer
+sudo cp /opt/petcam/systemd/petcam-cleanup.service /etc/systemd/system/
+sudo cp /opt/petcam/systemd/petcam-cleanup.timer /etc/systemd/system/
+
+# Reload and enable
+sudo systemctl daemon-reload
+sudo systemctl enable --now petcam-cleanup.timer
+
+# Verify the timer is active
+sudo systemctl status petcam-cleanup.timer
+systemctl list-timers --all | grep petcam
+```
+
+### Verify Recording
+
+```bash
+# List recordings
+ls -lh /opt/petcam/data/recordings/cam/
+
+# Check that the cleanup timer ran
+sudo journalctl -u petcam-cleanup --since "5 minutes ago"
+
+# Safely test cleanup (dry run — find what would be deleted):
+sudo -u petcam find /opt/petcam/data/recordings -type f -mmin +700 -ls
+```
+
+### Adjusting Segment Duration
+
+Edit `recordSegmentDuration` in `infra/mediamtx.yml`. For production use, change `10m` to `1h` to reduce file count:
+
+```yaml
+recordSegmentDuration: 1h
+```
+
+Then restart MediaMTX:
+```bash
+sudo systemctl restart petcam-mediamtx
+```
+
+---
+
+## 11. Tailscale (Future — Phase 5)
 
 Tailscale remote access is not set up yet. After local streaming works, Phase 5 will cover:
 

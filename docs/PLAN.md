@@ -74,9 +74,9 @@ petcam/
 
 ### Phase 2 — Recording & Retention
 - Enable MediaMTX recording (`record: true`)
-- Set `recordSegmentDuration: 1h`
+- Set `recordSegmentDuration: 10m` (practical for testing; adjust to `1h` for production)
 - Set `recordDeleteAfter: 12h`
-- Add safety `cleanup_recordings.sh` + systemd timer
+- Add safety `cleanup_recordings.sh` + systemd timer (every 10 min)
 - Verify recordings appear and old ones are cleaned
 
 ### Phase 3 — Web Frontend & API
