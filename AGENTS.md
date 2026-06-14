@@ -1,8 +1,8 @@
 # AGENTS.md — PetCam
 
 > PetCam is a Raspberry Pi 5 pet camera running Ubuntu 24.04 with a USB webcam.
-> Phases 0–2 are implemented: live HLS stream and 12-hour recording retention.
-> No backend API or web frontend yet. See `docs/` for full plan.
+> Phases 0–3 are implemented: live HLS stream, 12-hour recording retention,
+> and a web UI with FastAPI backend. See `docs/` for full plan.
 
 ## Quick Facts
 
@@ -17,27 +17,28 @@
 
 ## Directory Layout
 
-- `apps/api/`, `apps/web/` — to be implemented in Phase 3
+- `apps/api/` — FastAPI backend (health, recordings, static frontend)
 - `infra/mediamtx.yml` — MediaMTX config (recording enabled, 10m segments, 12h retention)
 - `scripts/` — `check_camera.sh` (validation), `start_camera.sh` (stream), `cleanup_recordings.sh` (safety retention)
 - `systemd/` — service unit files and timer
 - `data/recordings/` — runtime recordings (gitignored)
 
-## Current State (Phases 0–2)
+## Current State (Phases 0–3)
 
 Goal phases reached:
 - Phase 0/1: USB webcam → FFmpeg → MediaMTX → local browser live view
 - Phase 2: Recording enabled with 12-hour retention
+- Phase 3: Web UI + FastAPI backend for health, recordings, playback
 
 What is implemented:
 - Camera validation script
 - MediaMTX with HLS enabled and recording active (10m segments, 12h auto-delete)
 - FFmpeg stream pipeline (env-configurable)
-- systemd services for MediaMTX, stream, and cleanup timer
+- systemd services for MediaMTX, stream, API, and cleanup timer
+- FastAPI backend (`apps/api/main.py`) with `/health`, `/api/recordings`, file serving
+- Responsive web frontend with live HLS view, recording list, click-to-play
 
 What is NOT implemented (future):
-- Python FastAPI backend (Phase 3)
-- Web frontend (Phase 3)
 - Tailscale remote access (Phase 5)
 
 ## Constraints
@@ -66,6 +67,13 @@ ls -lh /opt/petcam/data/recordings/cam/
 sudo systemctl status petcam-cleanup.timer
 sudo journalctl -u petcam-cleanup --since "1 hour ago"
 
+# Check API
+curl http://localhost:8000/health
+curl http://localhost:8000/api/recordings
+
 # Check service status
-sudo systemctl status petcam-mediamtx petcam-stream
+sudo systemctl status petcam-mediamtx petcam-stream petcam-api
+
+# Open web UI
+echo "http://<pi-ip>:8000"
 ```

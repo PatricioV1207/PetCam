@@ -19,21 +19,31 @@ PetCam captures video from a USB webcam on a Raspberry Pi 5, streams it through 
                                               └───────────────────┘
 ```
 
-## Data Flow (Phase 2+)
+## Data Flow (Phase 3)
 
 ```
-┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  USB Webcam  │────▶│  FFmpeg (V4L2)   │────▶│    MediaMTX       │────▶│     Browser      │
-│  /dev/video0 │     │  H.264 encode    │     │  RTSP → HLS +    │     │  (live + replay) │
-│              │     │  RTSP publish    │     │  Record to disk  │     │                  │
-└──────────────┘     └──────────────────┘     └────────┬─────────┘     └──────────────────┘
+┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  USB Webcam  │────▶│  FFmpeg (V4L2)   │────▶│    MediaMTX       │
+│  /dev/video0 │     │  H.264 encode    │     │  RTSP → HLS +    │
+│              │     │  RTSP publish    │     │  Record to disk  │
+└──────────────┘     └──────────────────┘     └────────┬─────────┘
                                                         │
-                                                        ▼
-                                              ┌──────────────────┐
-                                              │   Recordings on  │
-                                              │   microSD (12h)  │
-                                              │   /data/recordings│
-                                              └──────────────────┘
+                                                        ├──────────────────────┐
+                                                        ▼                      ▼
+                                              ┌──────────────────┐   ┌──────────────────┐
+                                              │  FastAPI (8000)  │   │ Recordings on    │
+                                              │  / → index.html  │   │ microSD (12h)    │
+                                              │  /health         │   │ /data/recordings │
+                                              │  /api/recordings │   └──────────────────┘
+                                              │  /api/recordings │
+                                              │   /file/{path}  │
+                                              └────────┬─────────┘
+                                                       │
+                                              ┌─────────▼─────────┐
+                                              │  Browser (hls.js) │
+                                              │  Live + Playback  │
+                                              │  http://pi:8000   │
+                                              └───────────────────┘
 ```
 
 ## System Components
@@ -50,21 +60,27 @@ PetCam captures video from a USB webcam on a Raspberry Pi 5, streams it through 
 - Transmuxes to HLS on port `8888`
 - Phase 2: also records segments to disk
 
-### Python FastAPI (future — Phase 3)
-- Lists recordings from filesystem
-- Serves static web frontend
-- Provides health/status endpoint
+### Python FastAPI (Phase 3)
+- Endpoints:
+  - `GET /health` — service status, storage usage
+  - `GET /api/recordings` — JSON list of recording files (newest first)
+  - `GET /api/recordings/file/{path}` — serve recording file (path-traversal safe)
+  - `GET /` — serve static frontend
+- Binds to `0.0.0.0:8000` for LAN access
 
 ### systemd services
 - `petcam-mediamtx.service` — starts MediaMTX after network
 - `petcam-stream.service` — starts FFmpeg capture after MediaMTX
-- `petcam-api.service` (Phase 3) — starts FastAPI
-- `petcam-cleanup.timer` (Phase 2) — periodic retention cleanup
+- `petcam-api.service` — starts FastAPI on port 8000
+- `petcam-cleanup.service` + `.timer` — periodic retention cleanup
 
-### Web Frontend (future — Phase 3)
-- Vanilla HTML/JS with hls.js
-- Live stream from HLS endpoint
-- List and play recordings
+### Web Frontend (Phase 3)
+- Vanilla HTML/CSS/JS single-page app
+- Live stream via hls.js from MediaMTX HLS endpoint
+- Recordings list with refresh, file size, modified time
+- Click-to-play in HTML5 video player
+- Responsive design (works on phone)
+- hls.js loaded from CDN (can be vendored locally)
 
 ### Tailscale (Phase 5)
 - Remote access via `tailscale serve`

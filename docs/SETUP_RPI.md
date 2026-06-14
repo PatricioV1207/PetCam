@@ -258,7 +258,78 @@ sudo systemctl restart petcam-mediamtx
 
 ---
 
-## 11. Tailscale (Future — Phase 5)
+## 11. Web UI + API (Phase 3)
+
+### 11.1 Create Python Virtual Environment
+
+```bash
+sudo -u petcam python3 -m venv /opt/petcam/.venv
+sudo -u petcam /opt/petcam/.venv/bin/pip install -r /opt/petcam/apps/api/requirements.txt
+```
+
+### 11.2 Update .env with API Variables
+
+Add to `/opt/petcam/.env`:
+
+```bash
+API_HOST=0.0.0.0
+API_PORT=8000
+RECORDINGS_DIR=/opt/petcam/data/recordings
+LIVE_HLS_URL=http://localhost:8888/cam/index.m3u8
+```
+
+### 11.3 Start the API Service
+
+```bash
+sudo cp /opt/petcam/systemd/petcam-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now petcam-api.service
+
+# Check it's running
+sudo systemctl status petcam-api.service
+sudo journalctl -u petcam-api.service -n 30
+```
+
+### 11.4 Test the API
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Recordings list (should show files when recordings exist)
+curl http://localhost:8000/api/recordings
+
+# Open in browser
+echo "http://<pi-ip>:8000"
+```
+
+### 11.5 Access the Web UI
+
+Open a browser from any device on the same LAN:
+
+```
+http://<pi-ip>:8000
+```
+
+The page shows:
+- Live camera stream via hls.js
+- Recordings list (click to play)
+- Storage usage footer
+
+### 11.6 (Optional) Download hls.js Locally
+
+The frontend loads hls.js from a CDN by default. To vendor it locally on the Pi:
+
+```bash
+curl -L -o /opt/petcam/apps/api/static/vendor/hls.min.js \
+  https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js
+```
+
+Then update `index.html` to use `/vendor/hls.min.js` instead of the CDN URL.
+
+---
+
+## 12. Tailscale (Future — Phase 5)
 
 Tailscale remote access is not set up yet. After local streaming works, Phase 5 will cover:
 

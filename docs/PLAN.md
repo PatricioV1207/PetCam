@@ -30,8 +30,8 @@ Private pet surveillance camera for dogs. Runs on a Raspberry Pi 5 with Ubuntu 2
 ```
 petcam/
 ├── apps/
-│   ├── api/                    # Python + FastAPI (future)
-│   └── web/                    # Web frontend (future)
+│   ├── api/                    # FastAPI backend (Phase 3: health, recordings, static frontend)
+│   └── web/                    # reserved for future use
 ├── docs/
 │   ├── PLAN.md
 │   ├── ARCHITECTURE.md
@@ -47,8 +47,8 @@ petcam/
 ├── systemd/
 │   ├── petcam-mediamtx.service
 │   ├── petcam-stream.service
-│   ├── petcam-api.service       # Phase 3
-│   └── petcam-cleanup.timer     # Phase 2
+│   ├── petcam-api.service       # FastAPI backend (Phase 3)
+│   └── petcam-cleanup.timer     # Safety retention cleanup (Phase 2)
 ├── data/
 │   └── recordings/             # Runtime recordings (gitignored)
 ├── .env.example
@@ -80,9 +80,10 @@ petcam/
 - Verify recordings appear and old ones are cleaned
 
 ### Phase 3 — Web Frontend & API
-- Python FastAPI backend: list recordings, serve static files
-- Simple web page with HLS live view + recording playback
-- systemd service for API
+- Python FastAPI backend: health, recordings list, file serving, static frontend
+- Minimal HTML/CSS/JS frontend with hls.js live view + recording list + playback
+- systemd service for API (`petcam-api.service`)
+- API on port `8000`, accessible at `http://<pi-ip>:8000`
 
 ### Phase 4 — Autostart Hardening
 - Review and enable all systemd services

@@ -11,12 +11,17 @@
 ## Network Exposure
 
 | Port | Service | Bind | Acceptable For |
-|---|---|---|---|
+|---|---|---|---|---|
 | `8554` | MediaMTX RTSP | `:8554` (all interfaces) | LAN only |
 | `8888` | MediaMTX HLS | `:8888` (all interfaces) | LAN only |
 | `1935` | MediaMTX RTMP | `:1935` (all interfaces) | LAN only |
+| `8000` | FastAPI backend | `0.0.0.0:8000` | LAN only |
 
 > **WARNING:** These ports are bound to all network interfaces. On a home network behind a NAT router this is acceptable for LAN testing. However, these ports **must not be forwarded** on your router or exposed to the public internet. Remote access is handled exclusively via Tailscale (Phase 5).
+
+## API Path Traversal Prevention
+
+The `/api/recordings/file/{path}` endpoint resolves requested paths against `RECORDINGS_DIR` and rejects any path that escapes the recordings directory. Only files under `/opt/petcam/data/recordings` are accessible.
 
 ## Tailscale (Phase 5)
 

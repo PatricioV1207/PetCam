@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetCam</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header>
+  <h1>PetCam</h1>
+  <div id="status-badge" class="badge">checking…</div>
+</header>
+
+<section id="live">
+  <h2>Live</h2>
+  <div id="live-container">
+    <video id="live-video" controls autoplay muted playsinline></video>
+    <p class="hint">
+      <a id="live-link" href="#" target="_blank">Direct HLS stream</a>
+    </p>
+  </div>
+  <p id="live-fallback" class="hint hidden">
+    Live video requires hls.js. You can still view the
+    <a id="live-fallback-link" href="#" target="_blank">HLS stream directly</a>.
+  </p>
+</section>
+
+<section id="list">
+  <h2>Recordings</h2>
+  <div class="toolbar">
+    <button id="refresh-btn">Refresh</button>
+    <span id="rec-count" class="count"></span>
+  </div>
+  <ul id="rec-list"></ul>
+</section>
+
+<section id="playback" class="hidden">
+  <h2>Playback</h2>
+  <video id="playback-video" controls playsinline></video>
+  <p id="playback-name" class="hint"></p>
+</section>
+
+<footer>
+  <p id="footer-info"></p>
+</footer>
+
+<script src="/vendor/hls.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
