@@ -1,0 +1,28 @@
+# PetCam MediaMTX configuration
+# MediaMTX reads this file from its working directory or when passed as argument.
+
+logLevel: info
+
+# Protocol addresses.
+# WARNING: hlsAddress :8888 binds to all network interfaces.
+# This is acceptable for LAN testing but must NOT be exposed to the public internet.
+# Remote access will be handled via Tailscale in Phase 5.
+rtspAddress: :8554
+rtmpAddress: :1935
+hlsAddress: :8888
+
+paths:
+  cam:
+    # FFmpeg will publish to this path via RTSP.
+    source: publisher
+
+pathDefaults:
+  # Recording is disabled in Phase 1.
+  # Phase 2 will enable:
+  #   record: true
+  #   recordDeleteAfter: 12h
+  record: false
+  recordFormat: fmp4
+  recordPath: /opt/petcam/data/recordings/cam/%Y-%m-%d_%H-%M-%S-%f
+  recordSegmentDuration: 1h
+  recordDeleteAfter: 12h

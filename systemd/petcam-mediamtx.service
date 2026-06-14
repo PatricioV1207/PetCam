@@ -1,0 +1,18 @@
+[Unit]
+Description=PetCam MediaMTX streaming server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=petcam
+Group=petcam
+WorkingDirectory=/opt/petcam
+ExecStart=/usr/local/bin/mediamtx /opt/petcam/infra/mediamtx.yml
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

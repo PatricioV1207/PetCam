@@ -1,0 +1,19 @@
+[Unit]
+Description=PetCam camera stream publisher
+After=petcam-mediamtx.service
+Requires=petcam-mediamtx.service
+
+[Service]
+Type=simple
+User=petcam
+Group=petcam
+WorkingDirectory=/opt/petcam
+EnvironmentFile=-/opt/petcam/.env
+ExecStart=/opt/petcam/scripts/start_camera.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
