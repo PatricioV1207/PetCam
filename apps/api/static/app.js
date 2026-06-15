@@ -16,6 +16,8 @@
   const playbackSection = document.getElementById("playback");
   const playbackVideo = document.getElementById("playback-video");
   const playbackName = document.getElementById("playback-name");
+  const playbackNote = document.getElementById("playback-note");
+  const playbackDownload = document.getElementById("playback-download");
   const footerInfo = document.getElementById("footer-info");
 
   /* ---- helpers ---- */
@@ -102,8 +104,6 @@
     for (const r of recs) {
       const li = document.createElement("li");
       li.className = "rec-item";
-      li.setAttribute("data-url", r.play_url);
-      li.setAttribute("data-name", r.filename);
 
       const nameSpan = document.createElement("span");
       nameSpan.className = "rec-name";
@@ -116,19 +116,23 @@
       li.appendChild(nameSpan);
       li.appendChild(metaSpan);
       li.addEventListener("click", function () {
-        playRecording(r.play_url, r.filename);
+        playRecording(r.playable_url, r.filename, r.play_url);
       });
       recList.appendChild(li);
     }
   }
 
   /* ---- playback ---- */
-  function playRecording(url, name) {
+  function playRecording(playableUrl, name, downloadUrl) {
     playbackSection.classList.remove("hidden");
-    playbackVideo.src = url;
+    playbackNote.className = "small-note";
+    playbackName.textContent = name;
+    playbackDownload.href = downloadUrl;
+    playbackDownload.textContent = "Download original";
+
+    playbackVideo.src = playableUrl;
     playbackVideo.load();
     playbackVideo.play().catch(function () {});
-    playbackName.textContent = name;
     playbackVideo.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 

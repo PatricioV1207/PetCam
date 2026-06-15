@@ -10,7 +10,7 @@
 - **Streamer**: MediaMTX native ARM64 binary (not Docker). Configuration at `infra/mediamtx.yml`.
 - **Capture**: FFmpeg V4L2 → H.264 → RTSP → MediaMTX. Script at `scripts/start_camera.sh`.
 - **Playback**: HLS on port `8888`. View at `http://<pi-ip>:8888/cam`.
-- **Resolution**: 720p30 at 2 Mbps for MVP. Configurable via `.env`.
+- **Resolution**: 720p20 at 1 Mbps for MVP. Configurable via `.env`.
 - **Input format**: Configurable (`INPUT_FORMAT`), defaults to `mjpeg`. Change to `yuyv422` if camera doesn't support MJPEG.
 - **Autostart**: Native systemd services (not Docker). Service files in `systemd/`.
 - **Remote access**: Tailscale Serve (not yet configured — Phase 5).
@@ -18,10 +18,11 @@
 ## Directory Layout
 
 - `apps/api/` — FastAPI backend (health, recordings, static frontend)
-- `infra/mediamtx.yml` — MediaMTX config (recording enabled, 10m segments, 12h retention)
-- `scripts/` — `check_camera.sh` (validation), `start_camera.sh` (stream), `cleanup_recordings.sh` (safety retention)
+- `infra/mediamtx.yml` — MediaMTX config (recording enabled, 5m segments, 12h retention)
+- `scripts/` — `check_camera.sh` (validation), `start_camera.sh` (stream), `cleanup_recordings.sh` (safety retention), `remux_recording.sh` (browser playback)
 - `systemd/` — service unit files and timer
 - `data/recordings/` — runtime recordings (gitignored)
+- `data/playback-cache/` — remuxed MP4s for browser (gitignored)
 
 ## Current State (Phases 0–3)
 
@@ -32,11 +33,11 @@ Goal phases reached:
 
 What is implemented:
 - Camera validation script
-- MediaMTX with HLS enabled and recording active (10m segments, 12h auto-delete)
+- MediaMTX with HLS enabled and recording active (5m segments, 12h auto-delete)
 - FFmpeg stream pipeline (env-configurable)
 - systemd services for MediaMTX, stream, API, and cleanup timer
-- FastAPI backend (`apps/api/main.py`) with `/health`, `/api/recordings`, file serving
-- Responsive web frontend with live HLS view, recording list, click-to-play
+- FastAPI backend (`apps/api/main.py`) with `/health`, `/api/recordings`, `/api/recordings/playable/{path}` (remux), file serving
+- Responsive web frontend with live HLS view, recording list, click-to-play, download original
 
 What is NOT implemented (future):
 - Tailscale remote access (Phase 5)
@@ -48,7 +49,8 @@ What is NOT implemented (future):
 - `data/`, `.env*`, `*.log`, `node_modules/`, `.venv/`, `dist/`, `build/`, `__pycache__/` are gitignored.
 - Do not add a framework or toolchain unless asked.
 - `hlsAddress :8888` binds to all interfaces. OK for LAN. Not for public internet.
-- Recording retention: 10m segments, 12h rolling window. Configured in `infra/mediamtx.yml`.
+- Recording retention: 5m segments, 12h rolling window. Configured in `infra/mediamtx.yml`.
+- Playback remux cache (`data/playback-cache/`) also cleaned after 12h.
 
 ## Verification
 
@@ -70,6 +72,9 @@ sudo journalctl -u petcam-cleanup --since "1 hour ago"
 # Check API
 curl http://localhost:8000/health
 curl http://localhost:8000/api/recordings
+
+# Test playable endpoint (substitute a real recording path)
+curl -I "http://localhost:8000/api/recordings/playable/cam/2026-06-15_14-27-32-492274.mp4"
 
 # Check service status
 sudo systemctl status petcam-mediamtx petcam-stream petcam-api

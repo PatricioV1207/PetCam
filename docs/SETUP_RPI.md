@@ -96,10 +96,16 @@ DEVICE=/dev/video0
 # Use mjpeg if available (lower CPU). Fall back to yuyv422 if needed.
 INPUT_FORMAT=mjpeg
 
-# MVP settings: 720p30 at 2 Mbps for stability
+# Recommended settings: 720p20 at 1 Mbps for reliable stability.
+# Storage estimate: 1 Mbps ≈ 450 MB/hour
+# Optional lower-quality mode (less CPU):
+#   RESOLUTION=854x480
+#   FRAMERATE=20
+#   BITRATE=800k
+#   800 kbps ≈ 360 MB/hour
 RESOLUTION=1280x720
-FRAMERATE=30
-BITRATE=2M
+FRAMERATE=20
+BITRATE=1M
 PRESET=veryfast
 
 MEDIAMTX_HOST=localhost
@@ -197,7 +203,7 @@ sudo systemctl status petcam-stream
 
 ## 10. Enable Recording (Phase 2)
 
-Recording is now active. MediaMTX will write 10-minute fMP4 segments to `/opt/petcam/data/recordings/cam/` and automatically delete segments older than 12 hours.
+Recording is now active. MediaMTX will write 5-minute fMP4 segments to `/opt/petcam/data/recordings/cam/` and automatically delete segments older than 12 hours.
 
 ```bash
 # Update MediaMTX config (record: true, segment: 10m, retention: 12h)
@@ -245,7 +251,7 @@ sudo -u petcam find /opt/petcam/data/recordings -type f -mmin +700 -ls
 
 ### Adjusting Segment Duration
 
-Edit `recordSegmentDuration` in `infra/mediamtx.yml`. For production use, change `10m` to `1h` to reduce file count:
+Edit `recordSegmentDuration` in `infra/mediamtx.yml`. For production use, change `5m` to `1h` to reduce file count:
 
 ```yaml
 recordSegmentDuration: 1h
@@ -313,10 +319,57 @@ http://<pi-ip>:8000
 
 The page shows:
 - Live camera stream via hls.js
-- Recordings list (click to play)
+- Recordings list (click to play — first may take a moment to remux)
+- Download original link for each recording
 - Storage usage footer
 
-### 11.6 (Optional) Download hls.js Locally
+### 11.6 Playback Remux Cache (Phase 3.5)
+
+MediaMTX records in fragmented MP4 format (fMP4), which has the moov atom at the end of the file. Some browsers may not play this correctly. The backend automatically remuxes recordings on first request without re-encoding:
+
+```bash
+# This happens automatically — the endpoint /api/recordings/playable/{path}
+# runs: ffmpeg -i <recording> -c copy -movflags +faststart <cache>
+```
+
+The remuxed files are stored in:
+```
+/opt/petcam/data/playback-cache/
+```
+
+**Important:** Remuxing copies the video stream without re-encoding. This means:
+- No additional CPU load on the Pi (same H.264 data, just repackaged)
+- First playback of a recording may take 1–3 seconds to remux
+- Subsequent plays use the cached version instantly
+- The cache is automatically cleaned after 12 hours (same as recordings)
+
+Create the cache directory:
+```bash
+sudo mkdir -p /opt/petcam/data/playback-cache
+sudo chown petcam:petcam /opt/petcam/data/playback-cache
+```
+
+Then restart the API to pick up the PLAYBACK_CACHE_DIR env var:
+```bash
+sudo systemctl restart petcam-api
+sudo journalctl -u petcam-api -n 10
+```
+
+### 11.7 Test the Playable Endpoint
+
+```bash
+# Get a recording path from the API
+curl -s http://localhost:8000/api/recordings | python3 -m json.tool | grep relative_path
+
+# Then test the playable endpoint (substitute the actual path)
+curl -I "http://localhost:8000/api/recordings/playable/cam/2026-06-15_14-27-32-492274.mp4"
+
+# Expected headers:
+#   Content-Type: video/mp4
+#   Content-Length: <size>
+```
+
+### 11.8 (Optional) Download hls.js Locally
 
 The frontend loads hls.js from a CDN by default. To vendor it locally on the Pi:
 

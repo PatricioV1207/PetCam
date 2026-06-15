@@ -20,5 +20,5 @@ pathDefaults:
   record: true
   recordFormat: fmp4
   recordPath: /opt/petcam/data/recordings/%path/%Y-%m-%d_%H-%M-%S-%f
-  recordSegmentDuration: 10m
+  recordSegmentDuration: 5m
   recordDeleteAfter: 12h

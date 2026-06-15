@@ -30,7 +30,7 @@ Private pet surveillance camera for dogs. Runs on a Raspberry Pi 5 with Ubuntu 2
 ```
 petcam/
 ├── apps/
-│   ├── api/                    # FastAPI backend (Phase 3: health, recordings, static frontend)
+│   ├── api/                    # FastAPI backend (Phase 3: health, recordings, playback, static frontend)
 │   └── web/                    # reserved for future use
 ├── docs/
 │   ├── PLAN.md
@@ -43,14 +43,16 @@ petcam/
 ├── scripts/
 │   ├── check_camera.sh         # Validate camera and test capture
 │   ├── start_camera.sh         # Publish camera to MediaMTX
-│   └── cleanup_recordings.sh   # Safety retention cleanup (Phase 2)
+│   ├── cleanup_recordings.sh   # Safety retention cleanup (Phase 2)
+│   └── remux_recording.sh      # Remux recording for browser playback (Phase 3.5)
 ├── systemd/
 │   ├── petcam-mediamtx.service
 │   ├── petcam-stream.service
 │   ├── petcam-api.service       # FastAPI backend (Phase 3)
 │   └── petcam-cleanup.timer     # Safety retention cleanup (Phase 2)
 ├── data/
-│   └── recordings/             # Runtime recordings (gitignored)
+│   ├── recordings/             # Runtime recordings (gitignored)
+│   └── playback-cache/         # Remuxed MP4s for browser (gitignored)
 ├── .env.example
 └── AGENTS.md
 ```
@@ -74,7 +76,7 @@ petcam/
 
 ### Phase 2 — Recording & Retention
 - Enable MediaMTX recording (`record: true`)
-- Set `recordSegmentDuration: 10m` (practical for testing; adjust to `1h` for production)
+- Set `recordSegmentDuration: 5m` (practical for testing and playback; adjust to `1h` for production)
 - Set `recordDeleteAfter: 12h`
 - Add safety `cleanup_recordings.sh` + systemd timer (every 10 min)
 - Verify recordings appear and old ones are cleaned
@@ -84,6 +86,14 @@ petcam/
 - Minimal HTML/CSS/JS frontend with hls.js live view + recording list + playback
 - systemd service for API (`petcam-api.service`)
 - API on port `8000`, accessible at `http://<pi-ip>:8000`
+
+### Phase 3.5 — Browser Recording Playback Fix
+- MediaMTX fMP4 recordings are not directly playable in browsers (moov atom at end)
+- Add `scripts/remux_recording.sh`: `ffmpeg -c copy -movflags +faststart` (no re-encode)
+- FastAPI endpoint `GET /api/recordings/playable/{path}` remuxes on first request and caches result
+- Playback cache at `data/playback-cache/` — cleaned by same cleanup timer (12h retention)
+- Frontend uses playable URL; "Download original" link remains for raw file
+- Storage estimates: 1 Mbps ≈ 450 MB/hour, 800 kbps ≈ 360 MB/hour
 
 ### Phase 4 — Autostart Hardening
 - Review and enable all systemd services

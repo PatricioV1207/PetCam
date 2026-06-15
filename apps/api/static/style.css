@@ -139,6 +139,12 @@ button:disabled { opacity: 0.5; cursor: default; }
   word-break: break-all;
 }
 
+.small-note {
+  font-size: 0.8rem;
+  color: #665;
+  margin-top: 4px;
+}
+
 /* footer */
 footer {
   margin-top: 40px;

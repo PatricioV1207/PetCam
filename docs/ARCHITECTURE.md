@@ -64,7 +64,8 @@ PetCam captures video from a USB webcam on a Raspberry Pi 5, streams it through 
 - Endpoints:
   - `GET /health` — service status, storage usage
   - `GET /api/recordings` — JSON list of recording files (newest first)
-  - `GET /api/recordings/file/{path}` — serve recording file (path-traversal safe)
+  - `GET /api/recordings/file/{path}` — serve raw recording file (path-traversal safe)
+  - `GET /api/recordings/playable/{path}` — serve browser-friendly MP4 (remux with `-movflags +faststart`, cache in `playback-cache/`)
   - `GET /` — serve static frontend
 - Binds to `0.0.0.0:8000` for LAN access
 
@@ -96,12 +97,22 @@ PetCam captures video from a USB webcam on a Raspberry Pi 5, streams it through 
 
 All services run as the `petcam` user.
 
-## Recording Architecture (Phase 2)
+## Recording Architecture
 
-- MediaMTX segments: 10-minute `.mp4` files (`recordSegmentDuration: 10m`)
+- MediaMTX segments: 5-minute `.mp4` files (`recordSegmentDuration: 5m`)
 - Retention: `recordDeleteAfter: 12h` in MediaMTX (primary enforcement)
 - Safety net: `cleanup_recordings.sh` via systemd timer (every 10 min)
-  - Deletes files older than 720 minutes (12 hours)
+  - Deletes recording files older than 720 minutes (12 hours)
+  - Also cleans `playback-cache/` directory with the same retention
   - Removes empty directories
   - Guards against empty or invalid paths
 - Two independent mechanisms ensure retention is reliable
+
+## Playback Remuxing
+
+- MediaMTX records in fMP4 format (fragmented MP4). The moov atom is at the end of the file, which can cause browser loading issues.
+- `GET /api/recordings/playable/{path}` remuxes the file without re-encoding: `ffmpeg -c copy -movflags +faststart`
+- Remuxed files are stored in `data/playback-cache/` (gitignored)
+- The cache preserves the same directory structure as recordings
+- Cache invalidation: if the source recording is newer than the cached file, it is re-remuxed on next request
+- A remuxed 5-minute segment at 1 Mbps ≈ 37 MB
