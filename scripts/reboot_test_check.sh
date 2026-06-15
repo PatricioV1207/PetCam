@@ -47,10 +47,27 @@ check "petcam-cleanup.timer is active" systemctl is-active --quiet petcam-cleanu
 
 echo ""
 echo "--- Endpoint reachability ---"
-wait_for "HLS stream at localhost:8888/cam/index.m3u8" \
-  "curl -sf http://localhost:8888/cam/index.m3u8 | head -1 | grep -q ."
-wait_for "API health at localhost:8000/health" \
-  "curl -sf http://localhost:8000/health | python3 -c \"import sys,json; d=json.load(sys.stdin); exit(0 if d.get('status')=='ok' else 1)\""
+
+HLS_M3U8="http://127.0.0.1:8888/cam/index.m3u8"
+wait_for "HLS manifest at ${HLS_M3U8} contains #EXTM3U" \
+  "curl -fsSL --max-time 10 '${HLS_M3U8}' 2>/dev/null | head -1 | grep -q '^#EXTM3U'" 60 || {
+  echo ""
+  echo "  --- HLS failure diagnostics ---"
+  echo "  HTTP status: $(curl -sL -o /dev/null -w '%{http_code}' '${HLS_M3U8}' 2>/dev/null || echo 'unreachable')"
+  echo "  Player page check:"
+  if curl -sL --max-time 5 'http://127.0.0.1:8888/cam/' 2>/dev/null | grep -qi "hls"; then
+    echo "    /cam/ responds with HLS player HTML"
+  else
+    echo "    /cam/ does not contain HLS player"
+  fi
+  echo "  Recent MediaMTX logs:"
+  journalctl -u petcam-mediamtx.service --no-pager -n 20 2>/dev/null || true
+  echo "  Recent stream logs:"
+  journalctl -u petcam-stream.service --no-pager -n 20 2>/dev/null || true
+}
+
+wait_for "API health at http://127.0.0.1:8000/health" \
+  "curl -fsSL --max-time 10 'http://127.0.0.1:8000/health' | python3 -c \"import sys,json; d=json.load(sys.stdin); exit(0 if d.get('status')=='ok' else 1)\"" 60
 
 echo ""
 echo "--- Device access ---"

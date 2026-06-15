@@ -26,9 +26,8 @@ done
 
 echo ""
 
-# API health
 echo "--- API Health ---"
-if health=$(curl -sf http://localhost:8000/health 2>/dev/null); then
+if health=$(curl -fsSL --max-time 10 http://127.0.0.1:8000/health 2>/dev/null); then
   status=$(echo "$health" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null || echo "parse error")
   if [ "$status" = "ok" ]; then
     echo -e "  ${GREEN}ok${NC}"
@@ -43,11 +42,14 @@ fi
 
 echo ""
 
-# HLS stream
 echo "--- HLS Stream ---"
-m3u8=$(curl -sf http://localhost:8888/cam/index.m3u8 2>/dev/null | head -1 || echo "")
-if [ -n "$m3u8" ]; then
-  echo -e "  ${GREEN}responding${NC}  (first line: $m3u8)"
+http_code=$(curl -sL -o /dev/null -w '%{http_code}' http://127.0.0.1:8888/cam/index.m3u8 2>/dev/null || echo "000")
+m3u8=$(curl -fsSL --max-time 10 http://127.0.0.1:8888/cam/index.m3u8 2>/dev/null | head -1 || echo "")
+if echo "$m3u8" | grep -q "^#EXTM3U"; then
+  echo -e "  ${GREEN}responding${NC}  (HTTP ${http_code}, first line: ${m3u8})"
+elif [ "$http_code" != "000" ]; then
+  echo -e "  ${YELLOW}HTTP ${http_code}${NC}  (expected 200, got redirect/page)"
+  overall=1
 else
   echo -e "  ${RED}not reachable${NC}"
   overall=1
@@ -55,7 +57,6 @@ fi
 
 echo ""
 
-# Recording counts
 echo "--- Storage ---"
 rec_count=$(find /opt/petcam/data/recordings -type f 2>/dev/null | wc -l)
 cache_count=$(find /opt/petcam/data/playback-cache -type f 2>/dev/null | wc -l)

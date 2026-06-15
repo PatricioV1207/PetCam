@@ -154,8 +154,8 @@ In another terminal window (or from another machine on the same network), verify
 # Check that RTSP is receiving
 ffplay rtsp://<pi-ip>:8554/cam
 
-# Check HLS is being served
-curl -I http://<pi-ip>:8888/cam/index.m3u8
+# Check HLS manifest (use -L to follow MediaMTX cookie redirect, 127.0.0.1 avoids IPv6 issues)
+curl -fsSL --max-time 10 http://127.0.0.1:8888/cam/index.m3u8 | head -3
 ```
 
 Open a browser at `http://<pi-ip>:8888/cam` to view the live stream.
