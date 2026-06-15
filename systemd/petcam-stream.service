@@ -7,11 +7,39 @@ Requires=petcam-mediamtx.service
 Type=simple
 User=petcam
 Group=petcam
+SupplementaryGroups=video
 WorkingDirectory=/opt/petcam
 EnvironmentFile=-/opt/petcam/.env
 ExecStart=/opt/petcam/scripts/start_camera.sh
+
+# Camera device access
+DeviceAllow=/dev/video0 rw
+DeviceAllow=/dev/video1 rw
+DeviceAllow=/dev/null rw
+
+# Restart backoff
 Restart=always
-RestartSec=10
+RestartSec=5
+RestartSteps=5
+RestartMaxDelaySec=60
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+RestrictRealtime=yes
+
+# Timeouts
+TimeoutStartSec=30
+TimeoutStopSec=10
+
 StandardOutput=journal
 StandardError=journal
 

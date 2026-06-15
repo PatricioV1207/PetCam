@@ -44,11 +44,15 @@ petcam/
 │   ├── check_camera.sh         # Validate camera and test capture
 │   ├── start_camera.sh         # Publish camera to MediaMTX
 │   ├── cleanup_recordings.sh   # Safety retention cleanup (Phase 2)
-│   └── remux_recording.sh      # Remux recording for browser playback (Phase 3.5)
+│   ├── remux_recording.sh      # Remux recording for browser playback (Phase 3.5)
+│   ├── status.sh               # One-glance status summary (Phase 4)
+│   ├── reboot_test_check.sh    # Post-reboot verification (Phase 4)
+│   └── diagnose.sh             # Diagnostic info collection (Phase 4)
 ├── systemd/
-│   ├── petcam-mediamtx.service
-│   ├── petcam-stream.service
-│   ├── petcam-api.service       # FastAPI backend (Phase 3)
+│   ├── petcam-mediamtx.service  # Hardened + restart backoff (Phase 4)
+│   ├── petcam-stream.service    # Hardened + camera device access (Phase 4)
+│   ├── petcam-api.service       # FastAPI backend, starts after stream (Phase 4)
+│   ├── petcam-cleanup.service   # Hardened, startup-ordered (Phase 4)
 │   └── petcam-cleanup.timer     # Safety retention cleanup (Phase 2)
 ├── data/
 │   ├── recordings/             # Runtime recordings (gitignored)
@@ -95,9 +99,18 @@ petcam/
 - Frontend uses playable URL; "Download original" link remains for raw file
 - Storage estimates: 1 Mbps ≈ 450 MB/hour, 800 kbps ≈ 360 MB/hour
 
-### Phase 4 — Autostart Hardening
-- Review and enable all systemd services
-- Test reboot → working stream
+### Phase 4 — Autostart Hardening & Diagnostics
+- Add restart backoff to all services: `RestartSteps=5`, `RestartMaxDelaySec=60`, `StartLimitBurst=3`
+- Apply systemd hardening: `PrivateTmp`, `NoNewPrivileges`, `ProtectHome`, `ProtectKernelTunables`,
+  `ProtectKernelModules`, `ProtectControlGroups`, `RestrictSUIDSGID`, `RemoveIPC`, `RestrictRealtime`
+- Stream service: add `SupplementaryGroups=video`, `DeviceAllow=/dev/video0 rw`, `/dev/video1 rw`
+- API service: add `After=petcam-stream.service` (starts after stream is up)
+- Cleanup service: add `After=` all petcam services to avoid startup races
+- Create `scripts/status.sh` — one-glance status of all services, endpoints, storage
+- Create `scripts/reboot_test_check.sh` — automated post-reboot verification with polling
+- Create `scripts/diagnose.sh` — collect logs, camera info, disk usage
+- **Do not** use `PrivateDevices=yes` or `ProtectSystem=strict` (breaks camera or recordings)
+- **Success criteria:** After cold reboot, `reboot_test_check.sh` reports all PASS, `status.sh` shows all services active
 
 ### Phase 5 — Remote Access
 - Install and authenticate Tailscale

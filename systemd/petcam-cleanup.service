@@ -1,6 +1,6 @@
 [Unit]
 Description=PetCam recording cleanup
-After=local-fs.target
+After=local-fs.target petcam-mediamtx.service petcam-stream.service petcam-api.service
 
 [Service]
 Type=oneshot
@@ -8,6 +8,30 @@ User=petcam
 Group=petcam
 WorkingDirectory=/opt/petcam
 ExecStart=/opt/petcam/scripts/cleanup_recordings.sh
+
+# Restart backoff
+Restart=always
+RestartSec=5
+RestartSteps=5
+RestartMaxDelaySec=60
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+RestrictRealtime=yes
+
+# Timeouts
+TimeoutStartSec=30
+TimeoutStopSec=10
+
 StandardOutput=journal
 StandardError=journal
 

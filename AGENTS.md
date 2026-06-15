@@ -1,8 +1,8 @@
 # AGENTS.md — PetCam
 
 > PetCam is a Raspberry Pi 5 pet camera running Ubuntu 24.04 with a USB webcam.
-> Phases 0–3 are implemented: live HLS stream, 12-hour recording retention,
-> and a web UI with FastAPI backend. See `docs/` for full plan.
+> Phases 0–4 are implemented: live HLS stream, 12-hour recording retention,
+> web UI with FastAPI backend, and hardened systemd autostart with diagnostics.
 
 ## Quick Facts
 
@@ -19,17 +19,18 @@
 
 - `apps/api/` — FastAPI backend (health, recordings, static frontend)
 - `infra/mediamtx.yml` — MediaMTX config (recording enabled, 5m segments, 12h retention)
-- `scripts/` — `check_camera.sh` (validation), `start_camera.sh` (stream), `cleanup_recordings.sh` (safety retention), `remux_recording.sh` (browser playback)
-- `systemd/` — service unit files and timer
+- `scripts/` — `check_camera.sh` (validation), `start_camera.sh` (stream), `cleanup_recordings.sh` (safety retention), `remux_recording.sh` (browser playback), `status.sh` (status), `reboot_test_check.sh` (reboot verification), `diagnose.sh` (diagnostics)
+- `systemd/` — hardened service unit files and timer
 - `data/recordings/` — runtime recordings (gitignored)
 - `data/playback-cache/` — remuxed MP4s for browser (gitignored)
 
-## Current State (Phases 0–3)
+## Current State (Phases 0–4)
 
 Goal phases reached:
 - Phase 0/1: USB webcam → FFmpeg → MediaMTX → local browser live view
 - Phase 2: Recording enabled with 12-hour retention
 - Phase 3: Web UI + FastAPI backend for health, recordings, playback
+- Phase 4: Hardened systemd services with restart backoff, diagnostics scripts
 
 What is implemented:
 - Camera validation script
@@ -38,6 +39,8 @@ What is implemented:
 - systemd services for MediaMTX, stream, API, and cleanup timer
 - FastAPI backend (`apps/api/main.py`) with `/health`, `/api/recordings`, `/api/recordings/playable/{path}` (remux), file serving
 - Responsive web frontend with live HLS view, recording list, click-to-play, download original
+- systemd hardening: restart backoff, PrivateTmp, NoNewPrivileges, device access controls
+- Diagnostic scripts: `status.sh`, `reboot_test_check.sh`, `diagnose.sh`
 
 What is NOT implemented (future):
 - Tailscale remote access (Phase 5)
@@ -51,6 +54,17 @@ What is NOT implemented (future):
 - `hlsAddress :8888` binds to all interfaces. OK for LAN. Not for public internet.
 - Recording retention: 5m segments, 12h rolling window. Configured in `infra/mediamtx.yml`.
 - Playback remux cache (`data/playback-cache/`) also cleaned after 12h.
+
+## Constraints
+
+- Ubuntu 24.04 only. CSI cameras unsupported; use USB webcam.
+- No AI, motion detection, or notifications in current scope.
+- `data/`, `.env*`, `*.log`, `node_modules/`, `.venv/`, `dist/`, `build/`, `__pycache__/` are gitignored.
+- Do not add a framework or toolchain unless asked.
+- `hlsAddress :8888` binds to all interfaces. OK for LAN. Not for public internet.
+- Recording retention: 5m segments, 12h rolling window. Configured in `infra/mediamtx.yml`.
+- Playback remux cache (`data/playback-cache/`) also cleaned after 12h.
+- `PrivateDevices=yes` and `ProtectSystem=strict` are NOT used — they break camera access and file writes.
 
 ## Verification
 
@@ -77,7 +91,13 @@ curl http://localhost:8000/api/recordings
 curl -I "http://localhost:8000/api/recordings/playable/cam/2026-06-15_14-27-32-492274.mp4"
 
 # Check service status
-sudo systemctl status petcam-mediamtx petcam-stream petcam-api
+sudo systemctl status petcam-mediamtx petcam-stream petcam-api petcam-cleanup.timer
+
+# Run status script
+sudo -u petcam /opt/petcam/scripts/status.sh
+
+# Run diagnostics
+sudo -u petcam /opt/petcam/scripts/diagnose.sh
 
 # Open web UI
 echo "http://<pi-ip>:8000"

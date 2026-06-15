@@ -382,7 +382,66 @@ Then update `index.html` to use `/vendor/hls.min.js` instead of the CDN URL.
 
 ---
 
-## 12. Tailscale (Future — Phase 5)
+## 12. Autostart Hardening + Diagnostics (Phase 4)
+
+### 12.1 Deploy Updated Services
+
+```bash
+# Copy the updated service files
+sudo cp /opt/petcam/systemd/petcam-mediamtx.service /etc/systemd/system/
+sudo cp /opt/petcam/systemd/petcam-stream.service /etc/systemd/system/
+sudo cp /opt/petcam/systemd/petcam-api.service /etc/systemd/system/
+sudo cp /opt/petcam/systemd/petcam-cleanup.service /etc/systemd/system/
+
+# Reload and restart
+sudo systemctl daemon-reload
+sudo systemctl restart petcam-mediamtx petcam-stream petcam-api
+
+# Verify they are active
+sudo systemctl status petcam-mediamtx petcam-stream petcam-api
+```
+
+### 12.2 Status Script
+
+```bash
+# Make new scripts executable
+chmod +x /opt/petcam/scripts/status.sh
+chmod +x /opt/petcam/scripts/reboot_test_check.sh
+chmod +x /opt/petcam/scripts/diagnose.sh
+
+# Run status check
+sudo -u petcam /opt/petcam/scripts/status.sh
+```
+
+Expected output shows all services `active`, API `ok`, HLS `responding`.
+
+### 12.3 Diagnostic Script
+
+```bash
+sudo -u petcam /opt/petcam/scripts/diagnose.sh | less
+```
+
+### 12.4 Reboot Verification
+
+```bash
+# After a cold reboot, run:
+sudo -u petcam /opt/petcam/scripts/reboot_test_check.sh
+
+# Expected: all PASS, no FAIL
+```
+
+### 12.5 Hardening Notes
+
+- All services now include restart backoff (`RestartSteps`, `StartLimitBurst`) to prevent tight restart loops.
+- `PrivateDevices=yes` is **not used** — it would block camera V4L2 access.
+- `ProtectSystem=strict` is **not used** — it would prevent writing recordings.
+- The stream service has explicit `DeviceAllow=` rules for `/dev/video0` and `/dev/video1`.
+- The API service starts after the stream service to ensure the camera is publishing before the web UI loads.
+- The cleanup service starts after all other petcam services to avoid racing during boot.
+
+---
+
+## 13. Tailscale (Future — Phase 5)
 
 Tailscale remote access is not set up yet. After local streaming works, Phase 5 will cover:
 

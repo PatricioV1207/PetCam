@@ -9,8 +9,30 @@ User=petcam
 Group=petcam
 WorkingDirectory=/opt/petcam
 ExecStart=/usr/local/bin/mediamtx /opt/petcam/infra/mediamtx.yml
+
+# Restart backoff
 Restart=always
 RestartSec=5
+RestartSteps=5
+RestartMaxDelaySec=60
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+RestrictRealtime=yes
+
+# Timeouts
+TimeoutStartSec=30
+TimeoutStopSec=10
+
 StandardOutput=journal
 StandardError=journal
 
