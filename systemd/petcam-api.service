@@ -1,4 +1,6 @@
 [Unit]
+StartLimitBurst=5
+StartLimitIntervalSec=60
 Description=PetCam FastAPI backend
 After=network-online.target petcam-stream.service
 Wants=network-online.target
@@ -16,8 +18,6 @@ Restart=always
 RestartSec=5
 RestartSteps=5
 RestartMaxDelaySec=60
-StartLimitIntervalSec=60
-StartLimitBurst=3
 
 # Hardening
 PrivateTmp=yes

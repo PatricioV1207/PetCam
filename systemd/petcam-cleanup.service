@@ -10,12 +10,6 @@ WorkingDirectory=/opt/petcam
 ExecStart=/opt/petcam/scripts/cleanup_recordings.sh
 
 # Restart backoff
-Restart=always
-RestartSec=5
-RestartSteps=5
-RestartMaxDelaySec=60
-StartLimitIntervalSec=60
-StartLimitBurst=3
 
 # Hardening
 PrivateTmp=yes
